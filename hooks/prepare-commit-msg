@@ -4,19 +4,22 @@ import sys
 import subprocess
 
 commit_msg_filepath = sys.argv[1]
+print(sys.argv)
+if '--no-verify' in sys.argv:
+  exit(0)
 
 process = subprocess.Popen('git symbolic-ref --short HEAD'.split(), stdout=subprocess.PIPE)
 output, error = process.communicate()
 if error:
   exit(1)
 
-
-branch_name = output.upper()
+branch_name = output.strip()
 ticket = branch_name
 
 if branch_name.startswith('IMC'):
-  ticket = branch_name[:8]
+  ticket = branch_name[:8].upper()
 
-
-with open(commit_msg_filepath, 'w') as f:
-  f.write("%s: " % branch_name)
+with open(commit_msg_filepath, 'r+') as f:
+  commit_msg = f.read()
+  f.seek(0, 0)
+  f.write('%s: \n%s\n' % (ticket, commit_msg))
