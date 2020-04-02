@@ -16,12 +16,16 @@ if error:
   exit(1)
 
 branch_name = output.strip()
-ticket = branch_name
+name_match = re.match(r".*(imc_\d+)[_-]*(.*)", branch_name, re.IGNORECASE)
 
-if re.match(r".*imc_.*", branch_name, re.IGNORECASE):
-  ticket = branch_name[:8].upper()
+if name_match:
+  ticket_number = name_match.group(1)
+  ticket_number = re.sub(r"[-_]", '-', ticket_number).upper()
+  ticket_sentence = name_match.group(2)
+  ticket_sentence = re.sub(r"[-_]", ' ', ticket_sentence).title()
+  ticket_full_title = ticket_number + ' - ' + ticket_sentence
 
 with open(commit_msg_filepath, 'r+') as f:
   commit_msg = f.read()
   f.seek(0, 0)
-  f.write('%s: \n%s\n' % (ticket, commit_msg))
+  f.write('%s: \n%s\n' % (ticket_full_title, commit_msg))
