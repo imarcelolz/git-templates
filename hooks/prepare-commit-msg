@@ -2,30 +2,46 @@
 
 import sys
 import subprocess
-
+import os.path
 import re
 
 commit_msg_filepath = sys.argv[1]
-print(sys.argv)
-if '--no-verify' in sys.argv:
+
+path = os.path.dirname(commit_msg_filepath)
+merge_msg = os.path.join(path, 'MERGE_MSG')
+squash_msg = os.path.join(path, 'SQUASH_MSG')
+if os.path.isfile(merge_msg) or os.path.isfile(squash_msg):
   exit(0)
 
-process = subprocess.Popen('git symbolic-ref --short HEAD'.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-if error:
-  exit(1)
+def get_branch():
+  process = subprocess.Popen('git symbolic-ref --short HEAD'.split(), stdout=subprocess.PIPE)
+  output, error = process.communicate()
 
-branch_name = output.strip()
-name_match = re.match(r".*(imc_\d+)[_-]*(.*)", branch_name, re.IGNORECASE)
+  if error:
+    raise Error('Cannot find the branch name')
 
-if name_match:
-  ticket_number = name_match.group(1)
-  ticket_number = re.sub(r"[-_]", '-', ticket_number).upper()
-  ticket_sentence = name_match.group(2)
-  ticket_sentence = re.sub(r"[-_]", ' ', ticket_sentence).title()
-  ticket_full_title = ticket_number + ' - ' + ticket_sentence
+  return output.strip()
 
-with open(commit_msg_filepath, 'r+') as f:
-  commit_msg = f.read()
-  f.seek(0, 0)
-  f.write('%s: \n%s\n' % (ticket_full_title, commit_msg))
+def update_commit_message(path, prepend_text):
+  with open(path, 'r+') as f:
+    commit_msg = f.read()
+
+    if commit_msg.find(prepend_text) != -1:
+      return
+
+    output = '%s: \n %s' % (prepend_text, commit_msg)
+    f.seek(0, 0)
+    f.write(output)
+
+def extract_metadata(branch_name):
+  match = re.match(r"^([a-z]{3})([_-]{1})(\d{4})", branch_name, re.IGNORECASE)
+
+  if not match:
+    return branch_name
+
+  ticket_number = match.group(0)
+  ticket_number = re.sub(r"[_]", '-', ticket_number).upper()
+  return ticket_number
+
+prepend_text = extract_metadata(get_branch())
+update_commit_message(commit_msg_filepath, prepend_text)
