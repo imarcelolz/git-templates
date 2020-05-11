@@ -29,7 +29,7 @@ def update_commit_message(path, prepend_text):
     if commit_msg.find(prepend_text) != -1:
       return
 
-    output = '%s: \n %s' % (prepend_text, commit_msg)
+    output = '%s: %s\n' % (prepend_text, commit_msg)
     f.seek(0, 0)
     f.write(output)
 
